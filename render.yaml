@@ -2,8 +2,8 @@ services:
   - type: web
     name: taskflow-backend
     runtime: node
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: chmod +x build.sh && bash build.sh
+    startCommand: node dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
