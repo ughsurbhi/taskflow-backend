@@ -1,11 +1,7 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { z } from "zod";
 import prisma from "../utils/prisma";
 import { sendSuccess, sendError, sendPaginated } from "../utils/response";
-import { AuthenticatedRequest } from "../types";
-
-const TaskStatus = { PENDING: "PENDING", IN_PROGRESS: "IN_PROGRESS", COMPLETED: "COMPLETED" };
-const Priority = { LOW: "LOW", MEDIUM: "MEDIUM", HIGH: "HIGH" };
 
 export const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
@@ -17,8 +13,8 @@ export const createTaskSchema = z.object({
 
 export const updateTaskSchema = createTaskSchema.partial();
 
-export async function getTasks(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const userId = req.user!.id;
+export async function getTasks(req: Request, res: Response): Promise<void> {
+  const userId = (req as any).user!.id;
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 10));
   const status = req.query.status as string | undefined;
@@ -38,16 +34,16 @@ export async function getTasks(req: AuthenticatedRequest, res: Response): Promis
   sendPaginated(res, tasks, total, page, limit);
 }
 
-export async function getTask(req: AuthenticatedRequest, res: Response): Promise<void> {
+export async function getTask(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
-  const userId = req.user!.id;
+  const userId = (req as any).user!.id;
   const task = await prisma.task.findFirst({ where: { id, userId } });
   if (!task) { sendError(res, "Task not found", 404); return; }
   sendSuccess(res, task);
 }
 
-export async function createTask(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const userId = req.user!.id;
+export async function createTask(req: Request, res: Response): Promise<void> {
+  const userId = (req as any).user!.id;
   const { title, description, status, priority, dueDate } = req.body;
   const task = await prisma.task.create({
     data: {
@@ -62,9 +58,9 @@ export async function createTask(req: AuthenticatedRequest, res: Response): Prom
   sendSuccess(res, task, "Task created", 201);
 }
 
-export async function updateTask(req: AuthenticatedRequest, res: Response): Promise<void> {
+export async function updateTask(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
-  const userId = req.user!.id;
+  const userId = (req as any).user!.id;
   const existing = await prisma.task.findFirst({ where: { id, userId } });
   if (!existing) { sendError(res, "Task not found", 404); return; }
   const { title, description, status, priority, dueDate } = req.body;
@@ -81,18 +77,18 @@ export async function updateTask(req: AuthenticatedRequest, res: Response): Prom
   sendSuccess(res, task, "Task updated");
 }
 
-export async function deleteTask(req: AuthenticatedRequest, res: Response): Promise<void> {
+export async function deleteTask(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
-  const userId = req.user!.id;
+  const userId = (req as any).user!.id;
   const existing = await prisma.task.findFirst({ where: { id, userId } });
   if (!existing) { sendError(res, "Task not found", 404); return; }
   await prisma.task.delete({ where: { id } });
   sendSuccess(res, null, "Task deleted");
 }
 
-export async function toggleTask(req: AuthenticatedRequest, res: Response): Promise<void> {
+export async function toggleTask(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
-  const userId = req.user!.id;
+  const userId = (req as any).user!.id;
   const existing = await prisma.task.findFirst({ where: { id, userId } });
   if (!existing) { sendError(res, "Task not found", 404); return; }
   const newStatus = existing.status === "COMPLETED" ? "PENDING" : "COMPLETED";
